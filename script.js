@@ -4,10 +4,12 @@ const musicToggle = document.querySelector("#music-toggle");
 const track = document.querySelector("#gallery-track");
 const viewport = document.querySelector("#gallery-viewport");
 const currentLabel = document.querySelector("#current-photo");
+const galleryAutoplayToggle = document.querySelector("#gallery-autoplay-toggle");
 let currentIndex = 0;
 let dragStart = null;
 let autoplayTimer = null;
 let galleryIsActive = false;
+let galleryAutoplayPaused = false;
 
 for (let index = 1; index <= photoCount; index += 1) {
   const figure = document.createElement("figure");
@@ -33,10 +35,17 @@ function showPhoto(index, animate = true) {
 }
 
 function startAutoplay() {
-  if (autoplayTimer !== null) return;
+  if (autoplayTimer !== null || galleryAutoplayPaused) return;
   autoplayTimer = window.setInterval(() => {
     showPhoto((currentIndex + 1) % photoCount);
   }, 2500);
+}
+
+function updateGalleryAutoplayButton() {
+  galleryAutoplayToggle.setAttribute("aria-pressed", String(galleryAutoplayPaused));
+  galleryAutoplayToggle.setAttribute("aria-label", galleryAutoplayPaused ? "繼續婚紗照自動播放" : "暫停婚紗照自動播放");
+  galleryAutoplayToggle.querySelector(".gallery-autoplay-icon").textContent = galleryAutoplayPaused ? "▶" : "Ⅱ";
+  galleryAutoplayToggle.querySelector(".gallery-autoplay-text").textContent = galleryAutoplayPaused ? "繼續自動播放" : "暫停自動播放";
 }
 
 function stopAutoplay() {
@@ -61,12 +70,18 @@ document.addEventListener("visibilitychange", () => {
 
 document.querySelector("#previous-photo").addEventListener("click", () => showPhoto(currentIndex - 1));
 document.querySelector("#next-photo").addEventListener("click", () => showPhoto(currentIndex + 1));
+galleryAutoplayToggle.addEventListener("click", () => {
+  galleryAutoplayPaused = !galleryAutoplayPaused;
+  if (galleryAutoplayPaused) stopAutoplay(); else if (galleryIsActive && !document.hidden) startAutoplay();
+  updateGalleryAutoplayButton();
+});
 viewport.addEventListener("pointerdown", (event) => { stopAutoplay(); dragStart = event.clientX; viewport.classList.add("is-dragging"); viewport.setPointerCapture(event.pointerId); });
 viewport.addEventListener("pointerup", (event) => { if (dragStart !== null) { const distance = event.clientX - dragStart; if (Math.abs(distance) > 45) showPhoto(currentIndex + (distance < 0 ? 1 : -1)); } dragStart = null; viewport.classList.remove("is-dragging"); if (galleryIsActive) startAutoplay(); });
 viewport.addEventListener("pointercancel", () => { dragStart = null; viewport.classList.remove("is-dragging"); if (galleryIsActive) startAutoplay(); });
 window.addEventListener("resize", () => showPhoto(currentIndex, false));
 window.addEventListener("load", () => showPhoto(0, false));
 showPhoto(0, false);
+updateGalleryAutoplayButton();
 
 const musicFadeDuration = 3000;
 let musicFadeFrame = null;
